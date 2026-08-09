@@ -209,6 +209,63 @@ def fig2_series(daily, dust):
     save(fig, "fig2_series")
 
 
+def fig3_reporting(dust):
+    """The reporting-density artefact, and what conditioning the denominator does.
+
+    Panel (a): the fraction of reporting stations that actually filed a
+    present-weather group, which falls by more than half over the record.
+    Panel (b): the regional blowing-dust index computed two ways. Dividing by all
+    reporting stations charges every silent station as a non-event and drives the
+    index down with the reporting rate. Dividing by the stations that filed
+    recovers part of the signal.
+    """
+    d = dust[dust["n_stations"] > 0].copy()
+    corrected = d["n_blowing"] / d["n_wx"].where(d["n_wx"] >= 3)
+    naive = d["n_blowing"] / d["n_stations"].where(d["n_stations"] >= 3)
+    frame = pd.DataFrame({"corrected": corrected, "naive": naive},
+                         index=d.index)
+    annual = frame.groupby(frame.index.year).mean() * 100
+    annual = annual.dropna(how="all")
+    filed = (d["n_wx"] / d["n_stations"]).groupby(d.index.year).mean() * 100
+    filed = filed[filed > 0]
+
+    fig, axes = plt.subplots(2, 1, figsize=(COL, 78 * MM), sharex=True,
+                             gridspec_kw={"height_ratios": [1, 1.35],
+                                          "hspace": 0.16})
+
+    ax = axes[0]
+    ax.plot(filed.index, filed.values, marker="o", ms=2.4,
+            color=C["black"], lw=0.9)
+    ax.set_ylabel("Stations filing\npresent weather (%)")
+    ax.set_ylim(0, 100)
+    ax.grid(alpha=0.25, lw=0.3)
+    ax.text(0.015, 0.10, "(a)", transform=ax.transAxes, fontsize=8)
+
+    ax = axes[1]
+    ax.plot(annual.index, annual["naive"].values, marker="s", ms=2.4,
+            color=C["vermillion"], lw=0.9,
+            label="all stations in denominator")
+    ax.plot(annual.index, annual["corrected"].values, marker="o", ms=2.4,
+            color=C["blue"], lw=0.9,
+            label="reporting stations only")
+    ax.set_ylabel("Blowing-dust index (%)")
+    ax.set_xlabel("Year")
+    ax.set_ylim(0, None)
+    ax.grid(alpha=0.25, lw=0.3)
+    ax.legend(frameon=False, loc="upper right")
+    ax.text(0.015, 0.92, "(b)", transform=ax.transAxes, fontsize=8)
+
+    save(fig, "fig3_reporting")
+
+    for name in ("naive", "corrected"):
+        col = annual[name].dropna()
+        slope = np.polyfit(col.index.values.astype(float), col.values, 1)[0]
+        say(f"  {name:10} {col.iloc[0]:.1f}% to {col.iloc[-1]:.1f}%, "
+            f"trend {slope:+.2f} pp/yr")
+    say(f"  stations filing present weather: {filed.iloc[0]:.1f}% to "
+        f"{filed.iloc[-1]:.1f}%")
+
+
 def fig3_scatter(preds):
     """Observed against predicted, test period."""
     col = "meteo_only__random_forest"
@@ -246,10 +303,10 @@ def fig4_roc():
     auc = dict(zip(scores["forecast"], scores["AUC"]))
 
     show = [
-        ("meteo_only__random_forest", "Random forest, meteorology only", C["blue"], "-"),
+        ("meteo_only__random_forest", "Random forest, meteorology", C["blue"], "-"),
         ("climatology", "Climatology", C["orange"], "-"),
-        ("cams", "CAMS", C["vermillion"], "-"),
-        ("cams_dust", "CAMS dust", C["green"], "--"),
+        ("cams", "Reanalysis", C["vermillion"], "-"),
+        ("cams_dust", "Reanalysis, dust", C["green"], "--"),
         ("persistence", "Persistence", C["purple"], ":"),
     ]
 
@@ -266,7 +323,9 @@ def fig4_roc():
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.grid(alpha=0.25, lw=0.3)
-    ax.legend(loc="lower right", frameon=False, title="AUC", title_fontsize=7)
+    leg = ax.legend(loc="lower right", frameon=True, framealpha=0.9,
+                edgecolor="none", title="AUC", title_fontsize=7)
+    leg.get_frame().set_linewidth(0)
     save(fig, "fig4_roc")
 
 
@@ -468,6 +527,7 @@ def main():
     say("figures")
     n_stations = fig1_domain(station)
     fig2_series(daily, dust)
+    fig3_reporting(dust)
     fig3_scatter(preds)
     fig4_roc()
     fig5_importance()
