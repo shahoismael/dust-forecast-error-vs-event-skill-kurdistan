@@ -122,9 +122,9 @@ def main():
     frame["event"] = dust["blowing_day"]
 
     candidates = [
-        ("gradient_boosting", "full__gradient_boosting"),
-        ("random_forest", "full__random_forest"),
-        ("gb_no_cams", "no_cams__gradient_boosting"),
+        ("gradient_boosting", "meteo_only__gradient_boosting"),
+        ("random_forest", "meteo_only__random_forest"),
+        ("gb_plus_reanalysis", "plus_reanalysis__gradient_boosting"),
         ("climatology", "climatology"),
         ("cams", "cams_aod550_mean"),
         ("cams_dust", "cams_duaod550_mean"),
@@ -171,22 +171,24 @@ def main():
     for label in binary:
         if label == reference:
             continue
-        d, lo, hi, p = paired_test(
-            obs, binary[label], binary[reference], hss, rng
-        )
-        flag = "*" if lo > 0 or hi < 0 else " "
-        say(f"  {label:20} {d:+7.3f} [{lo:+.3f}, {hi:+.3f}] {p:8.4f} {flag}")
-        rows.append({"comparison": f"{label}_vs_{reference}", "metric": "HSS",
-                     "difference": round(d, 4), "ci_lo": round(lo, 4),
-                     "ci_hi": round(hi, 4), "p": round(p, 4)})
+        for name, stat in [("HSS", hss), ("CSI", csi)]:
+            d, lo, hi, p = paired_test(
+                obs, binary[label], binary[reference], stat, rng
+            )
+            if name == "HSS":
+                flag = "*" if lo > 0 or hi < 0 else " "
+                say(f"  {label:20} {d:+7.3f} [{lo:+.3f}, {hi:+.3f}] "
+                    f"{p:8.4f} {flag}")
+            rows.append({"comparison": f"{label}_vs_{reference}",
+                         "metric": name,
+                         "difference": round(d, 4), "ci_lo": round(lo, 4),
+                         "ci_hi": round(hi, 4), "p": round(p, 4)})
     say()
 
     say("the key ordering claim: does a lower-RMSE forecast detect fewer events")
     pairs = [
-        ("gradient_boosting", "cams"),
-        ("climatology", "cams"),
-        ("cams_dust", "cams"),
-        ("gradient_boosting", "climatology"),
+        ("random_forest", "climatology"),
+        ("random_forest", "gb_plus_reanalysis"),
     ]
     for a, b in pairs:
         if a not in binary or b not in binary:

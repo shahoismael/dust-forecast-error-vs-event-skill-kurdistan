@@ -142,11 +142,19 @@ def main():
         ("cams_dust", "cams_duaod550_mean"),
     ] + [(c, c) for c in preds.columns if c != "truth"]
 
-    val = frame[frame.index.year.isin(VAL)]
-    test = frame[frame.index.year.isin(TEST)]
+    # Every forecast is scored on an identical set of days. Otherwise a forecast
+    # with more missing days is compared against a different sample and the
+    # skill table is not internally comparable. This is the same common set the
+    # paired tests in S8 use, so the two tables agree by construction.
+    fc_cols = [c for _, c in forecasts if c in frame.columns]
+    common = frame[fc_cols + ["obs_event"]].dropna()
 
-    say(f"validation days with a ground label: {int(val['obs_event'].notna().sum())}")
-    say(f"test days with a ground label:       {int(test['obs_event'].notna().sum())}")
+    val = common[common.index.year.isin(VAL)]
+    test = common[common.index.year.isin(TEST)]
+
+    say(f"forecasts scored: {len(fc_cols)}")
+    say(f"common validation days (all forecasts defined, label present): {len(val)}")
+    say(f"common test days:       {len(test)}")
     say(f"test base rate: {test['obs_event'].mean():.1%}")
     say()
 

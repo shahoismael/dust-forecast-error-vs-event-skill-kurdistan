@@ -4,7 +4,7 @@ S6 - ablation and attribution.
 Three questions:
   1. Which groups of predictors carry the skill, by permutation importance?
   2. Where does the error sit across the seasonal cycle?
-  3. How much of the skill is CAMS being handed to the model as a feature?
+  3. What remains once the circular reanalysis predictor is removed?
 
 Writes results/s6_importance.csv, results/s6_seasonal.csv, results/s6_report.txt.
 """
@@ -33,7 +33,13 @@ N_REPEATS = 10
 
 # omi_uvai is excluded: the OMI row anomaly corrupts OMAERUVd from about
 # 2013 onward, so it must not enter a model whose test period is 2021-2024.
-DROP = {"aod550", "aod550_terra", "aod550_aqua", "year", "month", "omi_uvai"}
+# The composition reanalysis is excluded: it assimilates the satellite retrieval
+# used here as the target, so as a predictor it partly contains the answer.
+# omi_uvai is excluded: the row anomaly corrupts the retrieval from about 2013.
+DROP = {"aod550", "aod550_terra", "aod550_aqua", "year", "month", "omi_uvai",
+        "cams_aod550_mean", "cams_aod550_sd", "cams_aod550_gradEW",
+        "cams_aod550_gradNS", "cams_duaod550_mean", "cams_duaod550_sd",
+        "cams_duaod550_gradEW", "cams_duaod550_gradNS"}
 
 LINES = []
 

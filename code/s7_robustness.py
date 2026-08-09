@@ -28,7 +28,10 @@ VAL = range(2018, 2021)
 TEST = range(2021, 2025)
 
 SEED = 20260809
-DROP = {"aod550", "aod550_terra", "aod550_aqua", "year", "month", "omi_uvai"}
+DROP = {"aod550", "aod550_terra", "aod550_aqua", "year", "month", "omi_uvai",
+        "cams_aod550_mean", "cams_aod550_sd", "cams_aod550_gradEW",
+        "cams_aod550_gradNS", "cams_duaod550_mean", "cams_duaod550_sd",
+        "cams_duaod550_gradEW", "cams_duaod550_gradNS"}
 
 # OMI row anomaly degrades OMAERUVd progressively from about 2013.
 OMI_VAL = range(2004, 2010)
@@ -173,33 +176,48 @@ def main():
     preds = pd.read_csv(
         os.path.join(RESULTS, "s4_predictions.csv"), parse_dates=["date"]
     ).set_index("date")
-    shared = preds[["truth", "full__gradient_boosting"]].join(
+    shared = preds[["truth", "meteo_only__random_forest"]].join(
         df[["cams_aod550_mean"]]
     ).dropna()
     shared = shared[shared.index.year.isin(TEST)]
     if len(shared) > 100:
         m_rmse = rmse(shared["truth"].to_numpy(),
-                      shared["full__gradient_boosting"].to_numpy())
+                      shared["meteo_only__random_forest"].to_numpy())
         c_rmse = rmse(shared["truth"].to_numpy(),
                       shared["cams_aod550_mean"].to_numpy())
         say(f"  rows {len(shared)}")
-        say(f"  gradient boosting RMSE {m_rmse:.4f}")
+        say(f"  meteorology-only model RMSE {m_rmse:.4f}")
         say(f"  CAMS              RMSE {c_rmse:.4f}")
         say(f"  difference {c_rmse - m_rmse:+.4f}  "
             f"({1 - m_rmse/c_rmse:+.1%} relative)")
 
+        # moving-block bootstrap, 7-day blocks, to match S8 and respect
+        # the autocorrelation of dust episodes
         rng = np.random.default_rng(SEED)
-        diffs = np.empty(1000)
+        block = 7
+        n = len(shared)
+        diffs = np.empty(5000)
         y = shared["truth"].to_numpy()
-        a = shared["full__gradient_boosting"].to_numpy()
+        a = shared["meteo_only__random_forest"].to_numpy()
         b = shared["cams_aod550_mean"].to_numpy()
-        for i in range(1000):
-            idx = rng.integers(0, len(y), len(y))
+        for i in range(5000):
+            starts = rng.integers(0, max(n - block, 1), int(np.ceil(n / block)))
+            idx = np.concatenate([np.arange(s0, min(s0 + block, n))
+                                  for s0 in starts])[:n]
             diffs[i] = rmse(y[idx], b[idx]) - rmse(y[idx], a[idx])
         lo, hi = np.percentile(diffs, [2.5, 97.5])
-        say(f"  bootstrap 95% CI on the RMSE difference: [{lo:+.4f}, {hi:+.4f}]")
-        say(f"  significant at 5%: {'yes' if lo > 0 else 'no'}")
-        rows.append({"check": "vs_cams", "variant": "gradient_boosting",
+        say(f"  bootstrap 95% CI on CAMS RMSE minus model RMSE: "
+            f"[{lo:+.4f}, {hi:+.4f}]")
+        if hi < 0:
+            say("  CAMS is significantly more accurate on RMSE (5% level). "
+                "This is expected and is the premise of the paper: it "
+                "assimilates the target. Event skill is evaluated in S5 and S8.")
+        elif lo > 0:
+            say("  the meteorology-only model is significantly more accurate "
+                "on RMSE (5% level)")
+        else:
+            say("  the RMSE difference is not significant at the 5% level")
+        rows.append({"check": "vs_cams", "variant": "random_forest",
                      "rmse": round(m_rmse, 5), "cams_rmse": round(c_rmse, 5),
                      "diff_lo": round(float(lo), 5), "diff_hi": round(float(hi), 5)})
 

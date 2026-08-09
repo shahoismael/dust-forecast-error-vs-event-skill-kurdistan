@@ -3,14 +3,20 @@ S4 - models.
 
 Task: predict area-mean MODIS AOD 550 nm 24 hours ahead.
 
-Predictors available at forecast time: ERA5 fields for the target day, CAMS for
-the target day, and MODIS AOD lagged one to five days. This matches DustNet,
-where meteorology for the target day is known from the numerical forecast and
-only the aerosol state has to be predicted.
+Predictors: meteorological fields for the target day and the satellite target
+lagged one to five days. Perfect-prognosis design: the target-day meteorology comes
+from reanalysis, standing in for what a numerical forecast would supply in
+operations. Reported skill is therefore an upper bound on operational skill.
 
-Two feature sets are run so the CAMS contribution can be separated:
-    full     everything
-    no_cams  CAMS columns removed
+Two feature sets are run.
+
+    meteo_only  the headline. Meteorology, lagged target, calendar terms.
+    plus_reanalysis  adds the atmospheric composition reanalysis, for diagnosis only.
+
+The reanalysis assimilates the same satellite aerosol retrieval used here as the
+target (Inness et al., 2019). Using it as a predictor is therefore partly circular:
+the feature contains the answer. It is reported to quantify how much apparent skill
+an assimilated predictor buys, and it is not the result.
 
 Models are deliberately plain. They are the instrument, not the contribution.
 
@@ -121,8 +127,8 @@ def main():
     say()
 
     feature_sets = {
-        "full": features_all,
-        "no_cams": [c for c in features_all if c not in cams_cols],
+        "meteo_only": [c for c in features_all if c not in cams_cols],
+        "plus_reanalysis": features_all,
     }
 
     rows = []
@@ -130,7 +136,7 @@ def main():
     predictions["truth"] = usable["aod550"]
 
     for set_name, cols in feature_sets.items():
-        data = usable.dropna(subset=cols) if set_name == "full" else usable
+        data = usable.dropna(subset=cols) if set_name == "plus_reanalysis" else usable
         sub = data[cols + ["aod550"]].copy()
 
         # ERA5 has no gaps; OMI does. Fill forward at most one day, then drop.

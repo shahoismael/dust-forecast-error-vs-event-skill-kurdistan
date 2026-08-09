@@ -177,9 +177,20 @@ def fig2_series(daily, dust):
     ax.plot(roll.index, roll.values, lw=1.1, color=C["vermillion"],
             label="31-day mean")
 
-    events = dust.index[dust["blowing_day"] == 1]
-    ax.scatter(events, np.full(len(events), 1.62), s=0.35,
-               color=C["blue"], marker="|", label="ground dust day")
+    # 2,646 individual markers on a 22-year axis render as a solid bar and
+    # carry no information. Show the monthly fraction of reporting days that
+    # were dust days instead, on a secondary axis.
+    monthly = (dust["blowing_day"].dropna()
+               .resample("MS").agg(["mean", "size"]))
+    monthly = monthly[monthly["size"] >= 10]
+    ax2 = ax.twinx()
+    ax2.fill_between(monthly.index, 0, monthly["mean"].values,
+                     color=C["blue"], alpha=0.30, lw=0,
+                     label="ground dust days, monthly fraction")
+    ax2.set_ylim(0, 3.0)
+    ax2.set_yticks([0, 0.25, 0.5, 0.75, 1.0])
+    ax2.set_ylabel("Dust-day fraction")
+    ax2.tick_params(axis="y", labelsize=6)
 
     for boundary, text in [("2018-01-01", "validation"), ("2021-01-01", "test")]:
         ax.axvline(pd.Timestamp(boundary), color=C["green"], lw=0.7, ls=":")
@@ -190,13 +201,17 @@ def fig2_series(daily, dust):
     ax.set_ylim(0, 1.7)
     ax.set_xlabel("Year")
     ax.grid(alpha=0.25, lw=0.3)
-    ax.legend(loc="upper left", frameon=False, ncol=2)
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1 + h2, l1 + l2, loc="upper left", frameon=False, ncol=2)
+    ax.set_zorder(ax2.get_zorder() + 1)
+    ax.patch.set_visible(False)
     save(fig, "fig2_series")
 
 
 def fig3_scatter(preds):
     """Observed against predicted, test period."""
-    col = "full__gradient_boosting"
+    col = "meteo_only__random_forest"
     d = preds[["truth", col]].dropna()
     d = d[d.index.year.isin(TEST)]
 
@@ -231,7 +246,7 @@ def fig4_roc():
     auc = dict(zip(scores["forecast"], scores["AUC"]))
 
     show = [
-        ("full__gradient_boosting", "Gradient boosting", C["blue"], "-"),
+        ("meteo_only__random_forest", "Random forest, meteorology only", C["blue"], "-"),
         ("climatology", "Climatology", C["orange"], "-"),
         ("cams", "CAMS", C["vermillion"], "-"),
         ("cams_dust", "CAMS dust", C["green"], "--"),
@@ -329,37 +344,71 @@ def table1_inventory(daily, dust):
 
 
 def table2_continuous():
-    base = pd.read_csv(os.path.join(RESULTS, "s3_baselines.csv"))
-    mods = pd.read_csv(os.path.join(RESULTS, "s4_scores.csv"))
+    """Continuous skill, every forecast scored on an identical set of days.
+
+    The reanalysis-augmented models are defined on fewer days than the
+    meteorology-only models, so scoring each on whatever days it happens to
+    cover would compare different samples. All forecasts are therefore
+    restricted to the test days on which every forecast is available, which is
+    the same common set used for the event tables.
+    """
+    daily = pd.read_csv(
+        os.path.join(RESULTS, "s1_daily.csv"), parse_dates=["date"]
+    ).set_index("date")
+    preds = pd.read_csv(
+        os.path.join(RESULTS, "s4_predictions.csv"), parse_dates=["date"]
+    ).set_index("date")
+
+    frame = pd.DataFrame(index=daily.index)
+    frame["truth"] = daily["aod550"]
+    frame["persistence"] = daily["aod550"].shift(1)
+    clim_src = daily[daily.index.year.isin(range(2003, 2018))]
+    clim = clim_src.groupby(clim_src.index.dayofyear)["aod550"].mean()
+    clim = clim.reindex(range(1, 367)).interpolate().bfill().ffill()
+    frame["climatology"] = frame.index.dayofyear.map(clim)
+    frame["cams"] = daily["cams_aod550_mean"]
+    frame["cams_dust"] = daily["cams_duaod550_mean"]
+    for col in preds.columns:
+        if col != "truth":
+            frame[col] = preds[col]
+
+    frame = frame.dropna()
+    frame = frame[frame.index.year.isin(TEST)]
+    y = frame["truth"].to_numpy()
+    n = len(frame)
+
+    rng = np.random.default_rng(20260809)
+    boot_idx = [rng.integers(0, n, n) for _ in range(1000)]
 
     rows = []
-    for _, r in base[base.split == "test"].iterrows():
-        rows.append(
-            {
-                "Forecast": r["baseline"],
-                "Features": "-",
-                "n": int(r["n"]),
-                "RMSE": f"{r['rmse']:.4f}",
-                "95% CI": f"[{r['rmse_lo']:.4f}, {r['rmse_hi']:.4f}]",
-                "MAE": f"{r['mae']:.4f}",
-                "R2": f"{r['r2']:.3f}",
-            }
-        )
-    for _, r in mods[mods.split == "test"].iterrows():
-        rows.append(
-            {
-                "Forecast": r["model"],
-                "Features": r["feature_set"],
-                "n": int(r["n"]),
-                "RMSE": f"{r['rmse']:.4f}",
-                "95% CI": f"[{r['rmse_lo']:.4f}, {r['rmse_hi']:.4f}]",
-                "MAE": f"{r['mae']:.4f}",
-                "R2": f"{r['r2']:.3f}",
-            }
-        )
+    for col in frame.columns:
+        if col == "truth":
+            continue
+        f = frame[col].to_numpy()
+        err = f - y
+        rmse = float(np.sqrt(np.mean(err ** 2)))
+        mae = float(np.mean(np.abs(err)))
+        r2 = 1.0 - np.sum(err ** 2) / np.sum((y - y.mean()) ** 2)
+        vals = [float(np.sqrt(np.mean((f[i] - y[i]) ** 2))) for i in boot_idx]
+        lo, hi = np.percentile(vals, [2.5, 97.5])
+        if "__" in col:
+            fset, model = col.split("__")
+        else:
+            fset, model = "-", col
+        rows.append({
+            "Forecast": model,
+            "Features": fset,
+            "n": n,
+            "RMSE": f"{rmse:.4f}",
+            "95% CI": f"[{lo:.4f}, {hi:.4f}]",
+            "MAE": f"{mae:.4f}",
+            "R2": f"{r2:.3f}",
+        })
+
     out = pd.DataFrame(rows).sort_values("RMSE")
     write_table(out, "table2_continuous",
-                "Table 2. Continuous forecast skill on the test period, 2021-2024.")
+                f"Table 2. Continuous forecast skill on the test period, "
+                f"2021-2024. All forecasts scored on the same {n} days.")
 
 
 def table3_events():
@@ -371,10 +420,22 @@ def table3_events():
     csi_p = {r["comparison"].replace("_vs_cams", ""): r["p"]
              for _, r in versus.iterrows()}
 
+    # S5 uses column names, S8 uses short labels. Bridge them explicitly so
+    # the significance column is populated rather than silently blank.
+    to_s8 = {
+        "meteo_only__random_forest": "random_forest",
+        "meteo_only__gradient_boosting": "gradient_boosting",
+        "plus_reanalysis__gradient_boosting": "gb_plus_reanalysis",
+        "climatology": "climatology",
+        "persistence": "persistence",
+        "cams_dust": "cams_dust",
+        "observed_aod": "observed_aod",
+    }
+
     rows = []
     for _, r in ev.iterrows():
         name = r["forecast"]
-        short = name.replace("full__", "").replace("no_cams__", "")
+        short = name.replace("meteo_only__", "").replace("plus_reanalysis__", "+reanalysis ")
         rows.append(
             {
                 "Forecast": short,
@@ -385,7 +446,10 @@ def table3_events():
                 "HSS": f"{r['HSS']:.3f}",
                 "HSS 95% CI": f"[{r['HSS_lo']:.3f}, {r['HSS_hi']:.3f}]",
                 "AUC": f"{r['AUC']:.3f}",
-                "p vs CAMS (CSI)": (f"{csi_p[name]:.4f}" if name in csi_p else "-"),
+                "p vs CAMS (CSI)": (
+                    f"{csi_p[to_s8[name]]:.4f}"
+                    if to_s8.get(name) in csi_p else "-"
+                ),
             }
         )
     write_table(pd.DataFrame(rows), "table3_events",

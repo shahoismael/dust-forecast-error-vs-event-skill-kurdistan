@@ -142,6 +142,24 @@ def main():
     say("annual count of days with any dust report")
     yearly = joined.groupby(joined.index.year)["dust"].sum()
     say("  " + "  ".join(f"{y}:{int(v)}" for y, v in yearly.items()))
+    say()
+
+    say("annual count of days on which either station reported present weather")
+    uptime = joined.groupby(joined.index.year)["dust"].size()
+    say("  " + "  ".join(f"{y}:{int(v)}" for y, v in uptime.items()))
+    say()
+    rate = (yearly / uptime).replace([np.inf, -np.inf], np.nan)
+    say("dust days as a fraction of reporting days")
+    say("  " + "  ".join(f"{y}:{v:.0%}" for y, v in rate.items()))
+    say()
+    r = np.corrcoef(uptime.values.astype(float),
+                    yearly.values.astype(float))[0, 1]
+    say(f"correlation between annual reporting days and annual dust-day count: "
+        f"r = {r:.2f}")
+    say("WARNING. The raw annual counts above track station reporting uptime,")
+    say("not the atmosphere. Only the fraction of reporting days is")
+    say("interpretable, and only the seasonal cycle is reported in the paper.")
+    say("The raw annual series must not be presented as a dust trend.")
 
     # ------------------------------------------------------------ figure --
     fig, axes = plt.subplots(2, 1, figsize=(WIDE, 85 * MM), sharex=False,
