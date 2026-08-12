@@ -443,6 +443,14 @@ def table2_continuous():
     for col in frame.columns:
         if col == "truth":
             continue
+        # The dust component of the reanalysis is a dust-only field. Scoring it
+        # as a forecast of total aerosol optical depth is not a like-for-like
+        # comparison and produces a meaningless negative R2. It is kept in the
+        # frame so that the common-day set is identical to the event tables, and
+        # dropped from this table only, where it would mislead. It is scored in
+        # Table 3, where the target is a dust event and the comparison is fair.
+        if col == "cams_dust":
+            continue
         f = frame[col].to_numpy()
         err = f - y
         rmse = float(np.sqrt(np.mean(err ** 2)))
@@ -516,6 +524,39 @@ def table3_events():
                 "Thresholds fixed on validation years.")
 
 
+def table4_cost():
+    """Computational cost, straight from S11.
+
+    Written here rather than typed into the manuscript because a hand-typed
+    table is the one that goes stale after a rerun, and the paper claims every
+    table is generated from the result files.
+    """
+    path = os.path.join(RESULTS, "s11_compute_cost.csv")
+    if not os.path.exists(path):
+        say("  table4 skipped: run s11_compute_cost.py first")
+        return
+    cost = pd.read_csv(path)
+    head = cost[cost.feature_set == "meteo_only"]
+    names = {"ridge": "Ridge", "random_forest": "Random forest",
+             "gradient_boosting": "Grad. boosting"}
+    rows = []
+    for _, r in head.iterrows():
+        rows.append({
+            # Five columns, not seven. The build sets any table wider than five
+            # across both columns, which costs a section break and a partial
+            # page of column balancing. Wall-clock time and the per-day figure
+            # are given in the prose instead, where they cost two clauses.
+            "Model": names.get(r["model"], r["model"]),
+            "Fit, CPU (s)": f"{r['fit_cpu_s']:.1f}",
+            "Forecast series (ms)": f"{r['predict_ms']:.1f}",
+            "Peak memory (MB)": f"{r['peak_rss_mb']:.0f}",
+            "Stored model (MB)": f"{r['model_mb']:.2f}",
+        })
+    write_table(pd.DataFrame(rows), "table4_cost",
+                "Table 4. Computational cost of the meteorology-only "
+                "forecasts. Times are medians of five repetitions.")
+
+
 def main():
     say("=" * 70)
     say("S9 FIGURES AND TABLES")
@@ -539,6 +580,7 @@ def main():
     table1_inventory(daily, dust)
     table2_continuous()
     table3_events()
+    table4_cost()
 
     with open(os.path.join(RESULTS, "s9_report.txt"), "w", encoding="utf-8") as fh:
         fh.write("\n".join(LINES) + "\n")

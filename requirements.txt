@@ -7,3 +7,4 @@ netCDF4>=1.6
 cdsapi>=0.7
 requests>=2.31
 tabulate>=0.9
+psutil>=5.9

@@ -49,6 +49,9 @@ Run in order. Each stage writes to `results/` and reads only what earlier stages
 | `s8_paired_tests.py` | paired moving-block bootstrap on skill differences |
 | `s9_figures.py` | figures and tables |
 | `s10_duhok_panel.py` | descriptive panel, Duhok governorate |
+| `s11_compute_cost.py` | wall-clock, CPU, memory and energy cost of each model |
+| `s12_calibration_check.py` | is the event ordering discrimination or threshold placement |
+| `s13_label_sensitivity.py` | does the result survive redefining the event label |
 
 ## Reproducing
 
