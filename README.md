@@ -1,5 +1,7 @@
 # dust-forecast-error-vs-event-skill-kurdistan
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24051855.svg)](https://doi.org/10.5281/zenodo.24051855)
+
 Analysis code for the article *Satellite-Based Error and Observer-Based Event Skill Rank Day-Ahead Dust Forecasts Differently over the Kurdistan Region and Mesopotamia*.
 
 Day-ahead forecasts of regional aerosol optical depth (AOD) are scored twice on the same days: against the MODIS retrieval, and against blowing dust reported by surface observers. The CAMS reanalysis has the lowest error of every forecast that does not use it as an input, yet the lowest critical success index. Only the meteorology-only random forest beats it on event skill after Holm correction across the three models.
@@ -88,7 +90,7 @@ Credentials live in your home directory, never in the repository; `.gitignore` e
 
 ## Citation
 
-If you use this code, please cite the article and this software (see `CITATION.cff`).
+If you use this code, please cite the article and this software: Hassen, S.I. dust-forecast-error-vs-event-skill-kurdistan, version 1.0.1; Zenodo, 2026. https://doi.org/10.5281/zenodo.24051855 (see `CITATION.cff`).
 
 ## Licence
 
