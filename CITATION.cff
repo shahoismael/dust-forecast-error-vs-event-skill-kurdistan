@@ -10,7 +10,7 @@ authors:
 doi: "10.5281/zenodo.24051855"
 repository-code: "https://github.com/shahoismael/dust-forecast-error-vs-event-skill-kurdistan"
 license: MIT
-version: "1.0.1"
+version: "1.0.2"
 date-released: "2026-11-08"
 keywords:
   - sand and dust storms

@@ -213,6 +213,21 @@ def main():
                      "difference": round(d, 4), "ci_lo": round(lo, 4),
                      "ci_hi": round(hi, 4), "p": round(p, 4)})
 
+    # secondary family: each meteorology-only model against the CAMS dust
+    # field. A separate random stream keeps every earlier draw unchanged.
+    rng_dust = np.random.default_rng(SEED + 1)
+    say("secondary family: meteorology-only models vs the CAMS dust field")
+    for label in ["ridge", "random_forest", "gradient_boosting"]:
+        if label not in binary or "cams_dust" not in binary:
+            continue
+        for name, stat in [("HSS", hss), ("CSI", csi)]:
+            d, lo, hi, p = paired_test(obs, binary[label], binary["cams_dust"], stat, rng_dust)
+            say(f"  {label:20} vs cams_dust {name}  {d:+.3f} [{lo:+.3f}, {hi:+.3f}]  p = {p:.4f}")
+            rows.append({"comparison": f"{label}_vs_cams_dust", "metric": name,
+                         "difference": round(d, 4), "ci_lo": round(lo, 4),
+                         "ci_hi": round(hi, 4), "p": round(p, 4)})
+    say()
+
     # primary family: each meteorology-only model against CAMS,
     # Holm adjustment across the three models, separately for each metric
     family = ["ridge", "random_forest", "gradient_boosting"]
@@ -230,6 +245,15 @@ def main():
         for i, r in out.loc[sel.index].iterrows():
             say(f"  {r['comparison']:30} {metric}  {r['difference']:+.3f} "
                 f"[{r['ci_lo']:+.3f}, {r['ci_hi']:+.3f}]  p = {r['p']:.4f}  Holm p = {r['p_holm']:.4f}")
+    for metric in ("CSI", "HSS"):
+        sel = out[(out["metric"] == metric)
+                  & out["comparison"].isin([f"{m}_vs_cams_dust" for m in family])].sort_values("p")
+        running = 0.0
+        for rank, (i, r) in enumerate(sel.iterrows()):
+            running = max(running, min(1.0, (len(sel) - rank) * r["p"]))
+            out.loc[i, "p_holm"] = round(running, 4)
+        for i, r in out.loc[sel.index].iterrows():
+            say(f"  {r['comparison']:30} {metric}  Holm p = {r['p_holm']:.4f}")
     out.to_csv(os.path.join(RESULTS, "s8_paired.csv"), index=False)
 
     with open(os.path.join(RESULTS, "s8_report.txt"), "w", encoding="utf-8") as fh:

@@ -2,7 +2,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24051855.svg)](https://doi.org/10.5281/zenodo.24051855)
 
-Analysis code for the article *Satellite-Based Error and Observer-Based Event Skill Rank Day-Ahead Dust Forecasts Differently over the Kurdistan Region and Mesopotamia*.
+Analysis code for the article *Satellite-Based Error and Observer-Based Event Skill Rank Day-Ahead Dust Hindcasts Differently over the Kurdistan Region and Mesopotamia*.
 
 Day-ahead forecasts of regional aerosol optical depth (AOD) are scored twice on the same days: against the MODIS retrieval, and against blowing dust reported by surface observers. The CAMS reanalysis has the lowest error of every forecast that does not use it as an input, yet the lowest critical success index. Only the meteorology-only random forest beats it on event skill after Holm correction across the three models.
 
@@ -46,14 +46,14 @@ Run in order from the repository root. Each stage writes to `results/`, `tables/
 | `s5_event_eval.py` | event verification with thresholds fixed on validation; block-bootstrap HSS intervals |
 | `s6_ablation.py` | grouped permutation importance and seasonal error |
 | `s7_robustness.py` | Terra or Aqua alone, OMI check, like-for-like comparison with CAMS |
-| `s8_paired_tests.py` | paired moving-block bootstrap; Holm adjustment for the three models against CAMS |
+| `s8_paired_tests.py` | paired moving-block bootstrap; Holm adjustment for the three models against CAMS total and dust AOD |
 | `s9_figures.py --tables-only` | Tables 1 to 4 (run without the flag to also draw the legacy figure set) |
 | `s10_duhok_panel.py` | descriptive panel for Duhok governorate |
 | `s11_compute_cost.py` | processor time, memory and energy of each model |
 | `s12_calibration_check.py` | threshold placement against discrimination |
 | `s13_label_sensitivity.py` | the headline comparison under 15 event-label definitions |
 | `s14_journal_figures.py` | journal figures, PNG only |
-| `s15_reporting_numbers.py` | reporting-record numbers quoted in the text |
+| `s15_reporting_numbers.py` | reporting-record numbers quoted in the text; fixed-station panels and network composition |
 
 ## Reproducing
 
