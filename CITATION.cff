@@ -9,7 +9,7 @@ authors:
     affiliation: "Department of Chemical and Petrochemical Engineering, College of Engineering, Salahaddin University-Erbil, Erbil, Iraq"
 repository-code: "https://github.com/shahoismael/dust-forecast-error-vs-event-skill-kurdistan"
 license: MIT
-version: "1.0.0"
+version: "1.0.1"
 date-released: "2026-11-08"
 keywords:
   - sand and dust storms
