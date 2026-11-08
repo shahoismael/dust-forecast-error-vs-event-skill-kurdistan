@@ -46,7 +46,8 @@ VAL = range(2018, 2021)
 TEST = range(2021, 2025)
 
 SEED = 20260809
-N_BOOT = 1000
+N_BOOT = 5000
+BLOCK = 7  # days, same moving-block length as S8
 
 # omi_uvai is excluded: the OMI row anomaly corrupts OMAERUVd from about
 # 2013 onward, so it must not enter a model whose test period is 2021-2024.
@@ -73,12 +74,18 @@ def metrics(y, f):
     }
 
 
+def block_indices(n, rng, block=BLOCK):
+    """Moving-block resample of n consecutive days (blocks of BLOCK days)."""
+    starts = rng.integers(0, max(n - block, 1), int(np.ceil(n / block)))
+    return np.concatenate([np.arange(s, min(s + block, n)) for s in starts])[:n]
+
+
 def bootstrap_rmse(y, f, seed=SEED):
     rng = np.random.default_rng(seed)
     n = len(y)
     out = np.empty(N_BOOT)
     for i in range(N_BOOT):
-        idx = rng.integers(0, n, n)
+        idx = block_indices(n, rng)
         out[i] = np.sqrt(np.mean((f[idx] - y[idx]) ** 2))
     return float(np.percentile(out, 2.5)), float(np.percentile(out, 97.5))
 

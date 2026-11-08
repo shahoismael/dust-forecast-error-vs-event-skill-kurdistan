@@ -11,6 +11,7 @@ Writes figs/fig1..fig6 and tables/table1..table3 as CSV and markdown.
 """
 
 import os
+import sys
 
 import matplotlib
 matplotlib.use("Agg")
@@ -436,8 +437,13 @@ def table2_continuous():
     y = frame["truth"].to_numpy()
     n = len(frame)
 
+    # moving-block bootstrap, 7-day blocks and 5000 replicates, as in S4, S5 and S8
     rng = np.random.default_rng(20260809)
-    boot_idx = [rng.integers(0, n, n) for _ in range(1000)]
+    block = 7
+    boot_idx = []
+    for _ in range(5000):
+        starts = rng.integers(0, max(n - block, 1), int(np.ceil(n / block)))
+        boot_idx.append(np.concatenate([np.arange(s, min(s + block, n)) for s in starts])[:n])
 
     rows = []
     for col in frame.columns:
@@ -486,12 +492,17 @@ def table3_events():
                   & (pair["metric"] == "CSI")]
     csi_p = {r["comparison"].replace("_vs_cams", ""): r["p"]
              for _, r in versus.iterrows()}
+    # Holm-adjusted p for the primary family (three meteorology-only models)
+    csi_holm = {r["comparison"].replace("_vs_cams", ""): r["p_holm"]
+                for _, r in versus.iterrows()
+                if "p_holm" in versus.columns and pd.notna(r["p_holm"])}
 
     # S5 uses column names, S8 uses short labels. Bridge them explicitly so
     # the significance column is populated rather than silently blank.
     to_s8 = {
         "meteo_only__random_forest": "random_forest",
         "meteo_only__gradient_boosting": "gradient_boosting",
+        "meteo_only__ridge": "ridge",
         "plus_reanalysis__gradient_boosting": "gb_plus_reanalysis",
         "climatology": "climatology",
         "persistence": "persistence",
@@ -507,6 +518,7 @@ def table3_events():
             {
                 "Forecast": short,
                 "Threshold": f"{r['threshold']:.3f}",
+                "B": f"{r['frequency_bias']:.2f}",
                 "POD": f"{r['POD']:.3f}",
                 "FAR": f"{r['FAR']:.3f}",
                 "CSI": f"{r['CSI']:.3f}",
@@ -516,6 +528,10 @@ def table3_events():
                 "p vs CAMS (CSI)": (
                     f"{csi_p[to_s8[name]]:.4f}"
                     if to_s8.get(name) in csi_p else "-"
+                ),
+                "Holm p (CSI)": (
+                    f"{csi_holm[to_s8[name]]:.4f}"
+                    if to_s8.get(name) in csi_holm else "-"
                 ),
             }
         )
@@ -565,16 +581,19 @@ def main():
 
     daily, dust, preds, station = load()
 
-    say("figures")
-    n_stations = fig1_domain(station)
-    fig2_series(daily, dust)
-    fig3_reporting(dust)
-    fig3_scatter(preds)
-    fig4_roc()
-    fig5_importance()
-    fig6_seasonal()
-    say(f"  stations plotted: {n_stations}")
-    say()
+    # The journal figures come from s14_journal_figures.py. Pass --tables-only
+    # to rebuild the tables without regenerating the old figure set.
+    if "--tables-only" not in sys.argv:
+        say("figures")
+        n_stations = fig1_domain(station)
+        fig2_series(daily, dust)
+        fig3_reporting(dust)
+        fig3_scatter(preds)
+        fig4_roc()
+        fig5_importance()
+        fig6_seasonal()
+        say(f"  stations plotted: {n_stations}")
+        say()
 
     say("tables")
     table1_inventory(daily, dust)

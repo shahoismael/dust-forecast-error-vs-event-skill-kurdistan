@@ -33,7 +33,8 @@ VAL = range(2018, 2021)
 TEST = range(2021, 2025)
 
 SEED = 20260809
-N_BOOT = 1000
+N_BOOT = 5000
+BLOCK = 7  # days, same moving-block length as S8
 
 LINES = []
 
@@ -85,12 +86,18 @@ def sweep(obs, score, grid):
     return pd.DataFrame(out)
 
 
+def block_indices(n, rng, block=BLOCK):
+    """Moving-block resample of n consecutive days (blocks of BLOCK days)."""
+    starts = rng.integers(0, max(n - block, 1), int(np.ceil(n / block)))
+    return np.concatenate([np.arange(s, min(s + block, n)) for s in starts])[:n]
+
+
 def bootstrap_hss(obs, pred, seed=SEED):
     rng = np.random.default_rng(seed)
     n = len(obs)
     vals = np.empty(N_BOOT)
     for i in range(N_BOOT):
-        idx = rng.integers(0, n, n)
+        idx = block_indices(n, rng)
         vals[i] = skill(obs[idx], pred[idx])["HSS"]
     return float(np.nanpercentile(vals, 2.5)), float(np.nanpercentile(vals, 97.5))
 
@@ -100,7 +107,8 @@ def auc_from_roc(pofd, pod):
     x, y = np.asarray(pofd)[order], np.asarray(pod)[order]
     x = np.concatenate([[0.0], x, [1.0]])
     y = np.concatenate([[0.0], y, [1.0]])
-    return float(np.trapezoid(y, x))
+    integrate = getattr(np, "trapezoid", None) or np.trapz  # NumPy 2 renamed trapz
+    return float(integrate(y, x))
 
 
 def main():

@@ -7,7 +7,7 @@ OUT_DIR = os.path.join(
         "ICIEAHS_ROOT",
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
     ),
-    "datasets", "2_era5\single",
+    "datasets", "2_era5", "single",
 )
 os.makedirs(OUT_DIR, exist_ok=True)
 

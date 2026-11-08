@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "dust-forecast-error-vs-event-skill-kurdistan: analysis code for satellite-based error and observer-based event skill of day-ahead dust forecasts"
+type: software
+authors:
+  - family-names: "Hassen"
+    given-names: "Shaho Ismael"
+    orcid: "https://orcid.org/0000-0002-6403-7748"
+    affiliation: "Department of Chemical and Petrochemical Engineering, College of Engineering, Salahaddin University-Erbil, Erbil, Iraq"
+repository-code: "https://github.com/shahoismael/dust-forecast-error-vs-event-skill-kurdistan"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-08"
+keywords:
+  - sand and dust storms
+  - forecast verification
+  - present-weather observations
+  - aerosol optical depth
+  - machine learning
+  - Kurdistan Region
