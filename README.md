@@ -1,6 +1,6 @@
 # dust-forecast-error-vs-event-skill-kurdistan
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24051855.svg)](https://doi.org/10.5281/zenodo.24051855)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24051854.svg)](https://doi.org/10.5281/zenodo.24051854)
 
 Analysis code for the article *Satellite-Based Error and Observer-Based Event Skill Rank Day-Ahead Dust Hindcasts Differently over the Kurdistan Region and Mesopotamia*.
 
@@ -90,7 +90,7 @@ Credentials live in your home directory, never in the repository; `.gitignore` e
 
 ## Citation
 
-If you use this code, please cite the article and this software: Hassen, S.I. dust-forecast-error-vs-event-skill-kurdistan, version 1.0.1; Zenodo, 2026. https://doi.org/10.5281/zenodo.24051855 (see `CITATION.cff`).
+If you use this code, please cite the article and this software: Hassen, S.I. dust-forecast-error-vs-event-skill-kurdistan, version 1.0.2; Zenodo, 2026. https://doi.org/10.5281/zenodo.24092541 (all versions: https://doi.org/10.5281/zenodo.24051854) (see `CITATION.cff`).
 
 ## Licence
 

@@ -7,7 +7,7 @@ authors:
     given-names: "Shaho Ismael"
     orcid: "https://orcid.org/0000-0002-6403-7748"
     affiliation: "Department of Chemical and Petrochemical Engineering, College of Engineering, Salahaddin University-Erbil, Erbil, Iraq"
-doi: "10.5281/zenodo.24051855"
+doi: "10.5281/zenodo.24051854"
 repository-code: "https://github.com/shahoismael/dust-forecast-error-vs-event-skill-kurdistan"
 license: MIT
 version: "1.0.2"
