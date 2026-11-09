@@ -1,5 +1,5 @@
 {
-  "title": "dust-forecast-error-vs-event-skill-kurdistan: analysis code for satellite-based error and observer-based event skill of day-ahead dust forecasts",
+  "title": "dust-forecast-error-vs-event-skill-kurdistan: analysis code for satellite-based error and observer-based event skill of day-ahead dust hindcasts",
   "upload_type": "software",
   "description": "Analysis code and data-download scripts for the article 'Satellite-Based Error and Observer-Based Event Skill Rank Day-Ahead Dust Hindcasts Differently over the Kurdistan Region and Mesopotamia'. Day-ahead forecasts of regional aerosol optical depth over 30-40 N, 38-50 E (2003-2024) are verified against the MODIS retrieval and against blowing dust reported by surface observers, with the event denominator restricted to stations that filed present-weather reports. No data are redistributed; all inputs are public.",
   "creators": [

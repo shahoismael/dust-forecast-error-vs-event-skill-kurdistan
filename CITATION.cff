@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
-title: "dust-forecast-error-vs-event-skill-kurdistan: analysis code for satellite-based error and observer-based event skill of day-ahead dust forecasts"
+title: "dust-forecast-error-vs-event-skill-kurdistan: analysis code for satellite-based error and observer-based event skill of day-ahead dust hindcasts"
 type: software
 authors:
   - family-names: "Hassen"
@@ -11,7 +11,7 @@ doi: "10.5281/zenodo.24051855"
 repository-code: "https://github.com/shahoismael/dust-forecast-error-vs-event-skill-kurdistan"
 license: MIT
 version: "1.0.2"
-date-released: "2026-11-08"
+date-released: "2026-11-09"
 keywords:
   - sand and dust storms
   - forecast verification
